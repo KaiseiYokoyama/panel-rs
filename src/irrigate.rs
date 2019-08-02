@@ -58,12 +58,13 @@ impl Irrigater {
         let y = self.zero_point.1;
         if let Ok(pixel) = self.get_pixel(x, y) {
             self.queue.push_back((pixel, x, y));
-//            while !self.queue.is_empty() {
-//            }
-            for i in 0..100000 {
+            while !self.queue.is_empty() {
                 self.flood_fill_step();
-                if self.queue.is_empty() { break; }
             }
+//            for i in 0..150000 {
+//                self.flood_fill_step();
+//                if self.queue.is_empty() { break; }
+//            }
         }
     }
 
@@ -77,20 +78,32 @@ impl Irrigater {
 
                 // 周囲4pixelを判定待ちの列に加える
                 if let Ok(pixel) = self.get_pixel(x, y + 1) {
-                    self.queue.push_back((pixel, x, y + 1));
+                    let item = (pixel, x, y + 1);
+                    if !self.queue.contains(&item) {
+                        self.queue.push_back(item);
+                    }
                 }
                 if x > 0 {
                     if let Ok(pixel) = self.get_pixel(x - 1, y) {
-                        self.queue.push_back((pixel, x - 1, y));
+                        let item = (pixel, x - 1, y);
+                        if !self.queue.contains(&item) {
+                            self.queue.push_back(item);
+                        }
                     }
                 }
                 if y > 0 {
                     if let Ok(pixel) = self.get_pixel(x, y - 1) {
-                        self.queue.push_back((pixel, x, y - 1));
+                        let item = (pixel, x, y - 1);
+                        if !self.queue.contains(&item) {
+                            self.queue.push_back(item);
+                        }
                     }
                 }
                 if let Ok(pixel) = self.get_pixel(x + 1, y) {
-                    self.queue.push_back((pixel, x + 1, y));
+                    let item = (pixel, x + 1, y);
+                    if !self.queue.contains(&item) {
+                        self.queue.push_back(item);
+                    }
                 }
             }
         }
@@ -99,8 +112,8 @@ impl Irrigater {
     /// ピクセルを拾う
     fn get_pixel(&self, x: u32, y: u32) -> PanelResult<Rgba<u8>> {
         // 範囲外判定
-        let width_range = 0..=self.img.width();
-        let height_range = 0..=self.img.height();
+        let width_range = 0..self.img.width();
+        let height_range = 0..self.img.height();
 
         if width_range.contains(&x) && height_range.contains(&y) {
             Ok(self.img.get_pixel(x, y).clone())
