@@ -18,8 +18,8 @@ pub type ImageTable = Vec<Vec<Option<Flag>>>;
 pub struct Irrigater {
     /// 処理対象のイメージ
     img: ImageBuffer<Rgba<u8>, Vec<u8>>,
-    /// 未処理のPixelのキュー
-    queue: VecDeque<(Rgba<u8>, u32, u32)>,
+    /// 未処理のPixelの位置のキュー
+    queue: VecDeque<(u32, u32)>,
     /// 0ポイント
     zero_point: (u32, u32),
     /// 色差の許容幅
@@ -57,7 +57,7 @@ impl Irrigater {
         let x = self.zero_point.0;
         let y = self.zero_point.1;
         if let Ok(pixel) = self.get_pixel(x, y) {
-            self.queue.push_back((pixel, x, y));
+            self.queue.push_back((x, y));
             while !self.queue.is_empty() {
                 self.flood_fill_step();
             }
@@ -69,43 +69,36 @@ impl Irrigater {
     }
 
     fn flood_fill_step(&mut self) {
-        if let Some((pixel, x, y)) = self.queue.pop_front() {
+        if let Some((x, y)) = self.queue.pop_front() {
             println!("flood_fill_step: ({},{})", x, y);
-            println!("queue: {:?}", &self.queue);
+            if let Ok(pixel) = self.get_pixel(x, y) {
+                if self.image_table[y as usize][x as usize].is_none() && judge(&pixel, &self.reference_value, self.color_tolerance) {
+                    self.image_table[y as usize][x as usize] = Some(Flag::Flame);
 
-            if self.image_table[y as usize][x as usize].is_none() && judge(&pixel, &self.reference_value, self.color_tolerance) {
-                self.image_table[y as usize][x as usize] = Some(Flag::Flame);
-
-                // 周囲4pixelを判定待ちの列に加える
-                if let Ok(pixel) = self.get_pixel(x, y + 1) {
-                    let item = (pixel, x, y + 1);
+                    // 周囲4pixelを判定待ちの列に加える
+                    let item = (x, y + 1);
                     if !self.queue.contains(&item) {
                         self.queue.push_back(item);
                     }
-                }
-                if x > 0 {
-                    if let Ok(pixel) = self.get_pixel(x - 1, y) {
-                        let item = (pixel, x - 1, y);
+                    if x > 0 {
+                        let item = (x - 1, y);
                         if !self.queue.contains(&item) {
                             self.queue.push_back(item);
                         }
                     }
-                }
-                if y > 0 {
-                    if let Ok(pixel) = self.get_pixel(x, y - 1) {
-                        let item = (pixel, x, y - 1);
+                    if y > 0 {
+                        let item = (x, y - 1);
                         if !self.queue.contains(&item) {
                             self.queue.push_back(item);
                         }
                     }
-                }
-                if let Ok(pixel) = self.get_pixel(x + 1, y) {
-                    let item = (pixel, x + 1, y);
+                    let item = (x + 1, y);
                     if !self.queue.contains(&item) {
                         self.queue.push_back(item);
                     }
                 }
             }
+            println!("queue: {:?}", &self.queue);
         }
     }
 
