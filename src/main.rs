@@ -5,8 +5,6 @@ extern crate test;
 mod crop;
 mod irrigate;
 
-use image::GenericImageView;
-
 #[derive(Debug)]
 pub enum PanelError {
     IOError(std::io::Error),
@@ -29,24 +27,12 @@ impl From<image::ImageError> for PanelError {
 pub type PanelResult<T> = Result<T, PanelError>;
 
 fn main() -> image::ImageResult<()> {
-//    let img = image::open("sample.jpg")?;
-
-    // The dimensions method returns the images width and height.
-//    println!("dimensions {:?}", img.dimensions());
-
-    // The color method returns the image's `ColorType`.
-//    println!("{:?}", img.color());
-
-    // Write the contents of this image to the Writer in PNG format.
-//    img.save("test.png").unwrap();
-
     match run("panels.png", 400, (0, 0)) {
         Err(PanelError::RangeError(string)) => println!("{}", string),
         Err(PanelError::IOError(err)) => println!("{:?}", err),
         Err(PanelError::ImageError(err)) => return Err(err),
         Ok(_) => {}
     };
-//    run("sample2.jpg", 20, (0, 0));
 
     Ok(())
 }
@@ -66,13 +52,21 @@ fn run(image_path: &str, color_tolerance: u32, zero_point: (u32, u32)) -> PanelR
 #[cfg(test)]
 mod tests {
     use test::Bencher;
-    use crate::{PanelResult, crop::crop, irrigate::Irrigater};
+    use crate::{crop::crop, irrigate::Irrigater};
 
     #[bench]
-    fn irrigate(b: &mut Bencher) {
+    fn crop_bench(b: &mut Bencher) {
         b.iter(|| {
             let mut img = image::open("panels.png").unwrap();
-            let mut cropped_img = crop(&mut img, 100, (0, 0)).unwrap();
+            let _cropped_img = crop(&mut img, 100, (0, 0)).unwrap();
+        })
+    }
+
+    #[bench]
+    fn irrigate_bench(b: &mut Bencher) {
+        b.iter(|| {
+            let mut img = image::open("panels.png").unwrap();
+            let cropped_img = crop(&mut img, 100, (0, 0)).unwrap();
             Irrigater::new(&cropped_img, 100, (200, 615)).unwrap().flood_fill();
         });
     }
