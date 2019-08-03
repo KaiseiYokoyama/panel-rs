@@ -13,50 +13,41 @@ pub fn crop(image: &mut DynamicImage, color_tolerance: u32, zero_point: (u32, u3
         return Err(PanelError::RangeError(format!("image: [{},{}], zero_point: ({},{})", img.width(), img.height(), zero_point.0, zero_point.1)));
     } else { img.get_pixel(zero_point.0, zero_point.1).clone() };
 
-    // 上下の切り取り
-    // 上から
-    let mut y_top = None;
+    let (mut left, mut right, mut top, mut bottom) = (None, None, None, None);
+    for (row, mut pixels) in img.enumerate_rows_mut() {}
+
+
     for (row, mut pixels) in img.enumerate_rows_mut() {
-        if pixels.all(|(_, _, pixel)| { judge(&pixel, &standard, color_tolerance) }) {
-            y_top = Some(row);
-        } else { break; }
+        pixels.for_each(|(x, y, pixel)| {
+            if !judge(&pixel, &standard, color_tolerance) {
+                if let Some(val) = left {
+                    if val < x {
+                        left = Some(x);
+                    }
+                }
+                if let Some(val) = right {
+                    if val > x {
+                        right = Some(x);
+                    }
+                }
+                if let Some(val) = top {
+                    if val < y {
+                        top = Some(y);
+                    }
+                }
+                if let Some(val) = bottom {
+                    if val > y {
+                        bottom = Some(y);
+                    }
+                }
+            }
+        });
     }
 
-    // 下から
-    let mut y_bottom = None;
-    for y in (0..img.height()).rev() {
-        let mut row = true;
-        for x in 0..img.width() {
-            row = row && judge(img.get_pixel(x, y), &standard, color_tolerance);
-        }
-        if row { y_bottom = Some(y); } else { break; }
-    }
-
-    // 左右の切り取り
-    // 左から
-    let mut x_top = None;
-    for x in 0..img.width() {
-        let mut column = true;
-        for y in 0..img.height() {
-            column = column && judge(img.get_pixel(x, y), &standard, color_tolerance);
-        }
-        if column { x_top = Some(x); } else { break; }
-    }
-
-    // 右から
-    let mut x_bottom = None;
-    for x in (0..img.width()).rev() {
-        let mut column = true;
-        for y in 0..img.height() {
-            column = column && judge(img.get_pixel(x, y), &standard, color_tolerance);
-        }
-        if column { x_bottom = Some(x); } else { break; }
-    }
-
-    Ok(image.crop(x_top.unwrap_or(0) + 1,
-                  y_top.unwrap_or(0) + 1,
-                  x_bottom.unwrap_or(img.width()) - (x_top.unwrap_or(0) + 1),
-                  y_bottom.unwrap_or(img.height()) - (y_top.unwrap_or(0) + 1)))
+    Ok(image.crop(left.unwrap_or(0),
+                  top.unwrap_or(0),
+                  right.unwrap_or(img.width()) - (left.unwrap_or(0)),
+                  bottom.unwrap_or(img.height()) - (top.unwrap_or(0))))
 }
 
 pub fn judge(pixel: &Rgba<u8>, standard: &Rgba<u8>, tolerance: u32) -> bool {
