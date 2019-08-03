@@ -1,8 +1,13 @@
+#![feature(test)]
+
+extern crate test;
+
 mod crop;
 mod irrigate;
 
 use image::GenericImageView;
 
+#[derive(Debug)]
 pub enum PanelError {
     IOError(std::io::Error),
     ImageError(image::ImageError),
@@ -57,3 +62,20 @@ fn run(image_path: &str, color_tolerance: u32, zero_point: (u32, u32)) -> PanelR
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use test::Bencher;
+    use crate::{PanelResult, crop::crop, irrigate::Irrigater};
+
+    #[bench]
+    fn irrigate(b: &mut Bencher) {
+        b.iter(|| {
+            let mut img = image::open("panels.png").unwrap();
+            let mut cropped_img = crop(&mut img, 100, (0, 0)).unwrap();
+            Irrigater::new(&cropped_img, 100, (200, 615)).unwrap().flood_fill();
+        });
+    }
+}
+
+
