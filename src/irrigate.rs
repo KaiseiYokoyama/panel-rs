@@ -1,20 +1,34 @@
-use image::{Rgba,  DynamicImage, ImageBuffer};
+use image::{Rgba, DynamicImage, ImageBuffer};
 use crate::{PanelResult, PanelError};
 use crate::crop::judge;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
+use std::ops::Range;
 
 //pub type Flag = Option<u32>;
-#[derive(PartialOrd, PartialEq)]
+#[derive(PartialOrd, PartialEq, Copy, Clone, Ord, Eq)]
 pub enum Flag {
     Flame,
     Territory(u32),
 }
 
+impl Flag {
+    pub fn next(&self) -> Self {
+        match &self {
+            Flag::Flame => Flag::Territory(0),
+            Flag::Territory(i) => Flag::Territory(i + 1),
+        }
+    }
+}
+
 pub type ImageTable = Vec<Vec<Option<Flag>>>;
 
-pub struct Irrigater {
+pub struct Labeler {
     /// 処理対象のイメージ
     img: ImageBuffer<Rgba<u8>, Vec<u8>>,
+    /// 処理範囲
+    x_range: Range<u32>,
+    /// 処理範囲
+    y_range: Range<u32>,
     /// 未処理のPixelの位置のキュー
     queue: VecDeque<(u32, u32)>,
     /// 0ポイント
@@ -27,8 +41,8 @@ pub struct Irrigater {
     image_table: ImageTable,
 }
 
-impl Irrigater {
-    pub fn new(img: &DynamicImage, color_tolerance: u32, zero_point: (u32, u32)) -> PanelResult<Self> {
+impl Labeler {
+    pub fn new(img: &DynamicImage, ranges: (u32, u32, u32, u32), color_tolerance: u32, zero_point: (u32, u32)) -> PanelResult<Self> {
         let img = img.to_rgba();
 
         // 基準色
@@ -46,7 +60,15 @@ impl Irrigater {
             image_table.push(row);
         }
 
-        Ok(Self { img, queue: VecDeque::new(), zero_point, color_tolerance, reference_value, image_table })
+        println!("x_range: {:?}", &ranges.0);
+        println!("y_range: {:?}", &ranges.1);
+
+        Ok(Self { img, x_range: ranges.0..ranges.1, y_range: ranges.2..ranges.3, queue: VecDeque::new(), zero_point, color_tolerance, reference_value, image_table })
+    }
+
+    pub fn run(&mut self) {
+        self.flood_fill();
+        self.labelling();
     }
 
     /// フレームの読み取り
@@ -57,19 +79,15 @@ impl Irrigater {
             self.queue.push_back((x, y));
             loop {
                 self.flood_fill_step();
-                if !self.queue.is_empty() {
+                if self.queue.is_empty() {
                     break;
                 }
             }
-//            while !self.queue.is_empty() {
-//                self.flood_fill_step();
-//            }
         }
     }
 
     fn flood_fill_step(&mut self) {
         if let Some((x, y)) = self.queue.pop_front() {
-//            println!("flood_fill_step: ({},{})", x, y);
             if let Ok(pixel) = self.get_pixel(x, y) {
                 if self.image_table[y as usize][x as usize].is_none() && judge(&pixel, &self.reference_value, self.color_tolerance) {
                     self.image_table[y as usize][x as usize] = Some(Flag::Flame);
@@ -97,40 +115,122 @@ impl Irrigater {
                     }
                 }
             }
-//            println!("queue: {:?}", &self.queue);
+        }
+    }
+
+    /// ラベリング
+    pub fn labelling(&mut self) {
+        let mut lookup_table = [None; 200];
+
+        let mut last = Flag::Flame;
+        for y in self.y_range.clone() {
+            for x in self.x_range.clone() {
+                if self.image_table[y as usize][x as usize] != Some(Flag::Flame) {
+                    let upper = if y >= 1 { self.get_label(x, y - 1) } else { None };
+                    let before = if x >= 1 { self.get_label(x - 1, y) } else { None };
+                    let label = match (upper, before) {
+                        (None, None) | (Some(Flag::Flame), Some(Flag::Flame)) => {
+                            last = last.next();
+                            last.next()
+                        }
+                        (Some(flag1), Some(flag2)) =>
+                            if flag1 == Flag::Flame {
+                                flag2
+                            } else if flag2 == Flag::Flame {
+                                flag1
+                            } else {
+                                if flag1 == flag2 { flag1 } else {
+                                    let max = std::cmp::max(flag1, flag2);
+                                    let min = std::cmp::min(flag1, flag2);
+                                    if let (Flag::Territory(max), Flag::Territory(min)) = (max, min) {
+                                        if lookup_table[max as usize] != Some(min) {
+                                            lookup_table[max as usize] = Some(min);
+                                        }
+
+                                        std::cmp::min(flag1, flag2)
+                                    } else { unreachable!() }
+                                }
+                            }
+                        (None, Some(flag)) | (Some(flag), None) =>
+                            if flag == Flag::Flame {
+                                last = last.next();
+                                last.next()
+                            } else { flag }
+                    };
+
+                    self.image_table[y as usize][x as usize] = Some(label);
+                }
+            }
+        }
+
+        for i in (0..200).rev() {
+            if let Some(label) = lookup_table[i] {
+                for y in self.y_range.clone() {
+                    for x in self.x_range.clone() {
+                        if self.image_table[y as usize][x as usize] == Some(Flag::Territory(i as u32)) {
+                            self.image_table[y as usize][x as usize] = Some(Flag::Territory(label));
+                        }
+                    }
+                }
+            }
         }
     }
 
     /// ピクセルを拾う
     fn get_pixel(&self, x: u32, y: u32) -> PanelResult<Rgba<u8>> {
         // 範囲外判定
-        let width_range = 0..self.img.width();
-        let height_range = 0..self.img.height();
+//        let width_range = 0..self.img.width();
+//        let height_range = 0..self.img.height();
 
-        if width_range.contains(&x) && height_range.contains(&y) {
+        if self.x_range.contains(&x) && self.y_range.contains(&y) {
             Ok(self.img.get_pixel(x, y).clone())
         } else {
-            Err(PanelError::RangeError(format!("image: [{},{}], zero_point: ({},{})", self.img.width(), self.img.height(), x, y)))
+            Err(PanelError::RangeError(format!("image: [{:?},{:?}], ({},{})", &self.x_range, &self.y_range, x, y)))
         }
     }
-}
 
-pub fn irrigate(image: &mut DynamicImage, color_tolerance: u32, zero_point: (u32, u32)) -> PanelResult<()> {
-    let mut irrigater = Irrigater::new(&image, color_tolerance, zero_point)?;
-    irrigater.flood_fill();
+    /// ラベルを拾う
+    fn get_label(&self, x: u32, y: u32) -> Option<Flag> {
+        if self.x_range.contains(&x) && self.y_range.contains(&y) {
+            self.image_table[y as usize][x as usize]
+        } else {
+            None
+        }
+    }
 
-    // todo remove
-//    let mut img = image.to_rgba();
-//    let red = Rgba::from_channels(255, 0, 0, 255);
-//    for i in 0..img.height() {
-//        for j in 0..img.width() {
-//            if irrigater.image_table[i as usize][j as usize] == Some(Flag::Flame) {
-//                img.put_pixel(j, i, red.clone());
-//            }
-//        }
-//    }
-//
-//    img.save("panels-irrigated.png").unwrap();
+    /// mapを出力
+    pub fn output_map(&self) {
+        let mut img = self.img.clone();
+        let red = Rgba([255, 0, 0, 255]);
+        let colors = vec![
+            // purple
+            Rgba([156, 30, 176, 255]),
+            // blue
+            Rgba([33, 150, 243, 255]),
+            // teal
+            Rgba([0, 150, 136, 255]),
+            // green
+            Rgba([76, 175, 80, 255]),
+            // lime
+            Rgba([205, 220, 57, 255]),
+            // amber
+            Rgba([255, 193, 7, 255]),
+        ];
 
-    Ok(())
+        for i in 0..img.height() {
+            for j in 0..img.width() {
+                match self.image_table[i as usize][j as usize] {
+                    Some(Flag::Flame) => {
+                        img.put_pixel(j, i, red.clone());
+                    }
+                    Some(Flag::Territory(label)) => {
+                        img.put_pixel(j, i, colors.get(label as usize % colors.len()).cloned().unwrap());
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        img.save("panels-irrigated.png").unwrap();
+    }
 }
