@@ -1,10 +1,7 @@
-use image::{Rgba, RgbaImage, DynamicImage, ImageBuffer, Pixel, Primitive};
-use rayon::prelude::*;
+use image::{Rgba,  DynamicImage, ImageBuffer};
 use crate::{PanelResult, PanelError};
 use crate::crop::judge;
 use std::collections::VecDeque;
-use std::slice::Iter;
-//use std::collections::vec_deque::IntoIter;
 
 //pub type Flag = Option<u32>;
 #[derive(PartialOrd, PartialEq)]
@@ -41,9 +38,9 @@ impl Irrigater {
 
         // table
         let mut image_table: ImageTable = Vec::with_capacity(img.height() as usize);
-        for i in 0..img.height() {
+        for _i in 0..img.height() {
             let mut row = Vec::with_capacity(img.width() as usize);
-            for i in 0..img.width() {
+            for _i in 0..img.width() {
                 row.push(None);
             }
             image_table.push(row);
@@ -56,7 +53,7 @@ impl Irrigater {
     pub fn flood_fill(&mut self) {
         let x = self.zero_point.0;
         let y = self.zero_point.1;
-        if let Ok(pixel) = self.get_pixel(x, y) {
+        if let Ok(_) = self.get_pixel(x, y) {
             self.queue.push_back((x, y));
             loop {
                 self.flood_fill_step();
