@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8e316c92-1686-4857-bf0b-c493457d091b" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/irrigate.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/irrigate.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
@@ -22,11 +21,16 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panels-irrigated.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="240">
-              <caret line="91" selection-start-line="81" selection-end-line="91" />
+            <state relative-caret-position="315">
+              <caret line="50" selection-start-line="50" selection-end-line="50" />
             </state>
           </provider>
         </entry>
@@ -34,10 +38,57 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/irrigate.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="329">
-              <caret line="158" column="22" lean-forward="true" selection-start-line="158" selection-start-column="22" selection-end-line="158" selection-end-column="22" />
+            <state relative-caret-position="346">
+              <caret line="442" column="26" selection-start-line="442" selection-start-column="26" selection-end-line="442" selection-end-column="26" />
+              <folding>
+                <element signature="e#1113#1740#0" />
+                <element signature="e#1765#2241#0" />
+                <element signature="e#2188#2524#0" />
+                <element signature="e#2560#3796#0" />
+                <element signature="e#5176#8922#0" />
+                <element signature="e#8950#9527#0" />
+                <element signature="e#6588#7168#0" />
+                <element signature="e#7251#8436#0" />
+                <element signature="e#10762#11147#0" />
+                <element signature="e#11220#11392#0" />
+              </folding>
             </state>
           </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panel_0.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panels.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panel_1.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panel_2.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panel_3.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panel_4.png">
+          <provider selected="true" editor-type-id="images" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/panel_5.png">
+          <provider selected="true" editor-type-id="images" />
         </entry>
       </file>
     </leaf>
@@ -128,10 +179,10 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Cargo Command.Bench tests::labelling_alt_bench">
-    <configuration name="Bench main::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+  <component name="RunManager" selected="Cargo Command.Bench irrigate::tests::panelling_bench">
+    <configuration name="Bench irrigate::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="channel" value="NIGHTLY" />
-      <option name="command" value="bench --package panel --bin panel --tests" />
+      <option name="command" value="bench --package panel --bin panel irrigate::tests" />
       <option name="allFeatures" value="false" />
       <option name="nocapture" value="false" />
       <option name="emulateTerminal" value="false" />
@@ -140,20 +191,9 @@
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="Bench tests::irrigate_bench" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+    <configuration name="Bench irrigate::tests::panelling_bench" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="channel" value="NIGHTLY" />
-      <option name="command" value="bench --package panel --bin panel tests::irrigate_bench -- --exact" />
-      <option name="allFeatures" value="false" />
-      <option name="nocapture" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="backtrace" value="SHORT" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <configuration name="Bench tests::labelling_alt_bench" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="channel" value="NIGHTLY" />
-      <option name="command" value="bench --package panel --bin panel tests::labelling_alt_bench -- --exact" />
+      <option name="command" value="bench --package panel --bin panel irrigate::tests::panelling_bench -- --exact" />
       <option name="allFeatures" value="false" />
       <option name="nocapture" value="false" />
       <option name="emulateTerminal" value="false" />
@@ -175,16 +215,14 @@
     </configuration>
     <list>
       <item itemvalue="Cargo Command.Run panel" />
-      <item itemvalue="Cargo Command.Bench main::tests" />
-      <item itemvalue="Cargo Command.Bench tests::irrigate_bench" />
-      <item itemvalue="Cargo Command.Bench tests::labelling_alt_bench" />
+      <item itemvalue="Cargo Command.Bench irrigate::tests" />
+      <item itemvalue="Cargo Command.Bench irrigate::tests::panelling_bench" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo Command.Bench main::tests" />
+        <item itemvalue="Cargo Command.Bench irrigate::tests::panelling_bench" />
+        <item itemvalue="Cargo Command.Bench irrigate::tests" />
         <item itemvalue="Cargo Command.Run panel" />
-        <item itemvalue="Cargo Command.Bench tests::labelling_alt_bench" />
-        <item itemvalue="Cargo Command.Bench tests::irrigate_bench" />
       </list>
     </recent_temporary>
   </component>
@@ -207,12 +245,12 @@
       <workItem from="1564544321899" duration="8000" />
       <workItem from="1564732097699" duration="22735000" />
       <workItem from="1564816197162" duration="14059000" />
-      <workItem from="1565156846179" duration="422000" />
+      <workItem from="1565156846179" duration="6994000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="58402000" />
+    <option name="totallyTimeSpent" value="64974000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
@@ -299,9 +337,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/test.png" />
-    <entry file="file://$PROJECT_DIR$/panels.png">
-      <provider selected="true" editor-type-id="images" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/crop.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="404">
@@ -309,20 +344,53 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/panel_0.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/panel_1.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/panel_2.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/panel_3.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/panel_4.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/panel_5.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/panels.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/panels-irrigated.png">
       <provider selected="true" editor-type-id="images" />
     </entry>
     <entry file="file://$PROJECT_DIR$/src/irrigate.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="329">
-          <caret line="158" column="22" lean-forward="true" selection-start-line="158" selection-start-column="22" selection-end-line="158" selection-end-column="22" />
+        <state relative-caret-position="346">
+          <caret line="442" column="26" selection-start-line="442" selection-start-column="26" selection-end-line="442" selection-end-column="26" />
+          <folding>
+            <element signature="e#1113#1740#0" />
+            <element signature="e#1765#2241#0" />
+            <element signature="e#2188#2524#0" />
+            <element signature="e#2560#3796#0" />
+            <element signature="e#5176#8922#0" />
+            <element signature="e#8950#9527#0" />
+            <element signature="e#6588#7168#0" />
+            <element signature="e#7251#8436#0" />
+            <element signature="e#10762#11147#0" />
+            <element signature="e#11220#11392#0" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="91" selection-start-line="81" selection-end-line="91" />
+        <state relative-caret-position="315">
+          <caret line="50" selection-start-line="50" selection-end-line="50" />
         </state>
       </provider>
     </entry>

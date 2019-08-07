@@ -1,11 +1,11 @@
 use image::{Rgba, DynamicImage, ImageBuffer};
 use crate::{PanelResult, PanelError};
 use crate::crop::judge;
-use std::collections::{VecDeque, HashSet};
-use std::ops::Range;
+use std::collections::{VecDeque, HashSet, HashMap};
+use std::ops::{Range, Add};
 
 //pub type Flag = Option<u32>;
-#[derive(PartialOrd, PartialEq, Copy, Clone, Ord, Eq)]
+#[derive(PartialOrd, PartialEq, Copy, Clone, Ord, Eq, Hash, Debug)]
 pub enum Flag {
     Flame,
     Territory(u32),
@@ -39,6 +39,55 @@ pub struct Labeler {
     reference_value: Rgba<u8>,
     /// table
     image_table: ImageTable,
+    /// panels
+    territories: Option<HashMap<Flag, Area>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Area {
+    pub x_range: Range<u32>,
+    pub y_range: Range<u32>,
+}
+
+impl Area {
+    pub fn calibrate(&mut self, x: u32, y: u32) {
+        if !self.x_range.contains(&x) {
+            if x < self.x_range.start {
+                self.x_range.start = x;
+            } else if self.x_range.end <= x {
+                self.x_range.end = x + 1;
+            } else {
+                unreachable!()
+            }
+        }
+        if !self.y_range.contains(&y) {
+            if y < self.y_range.start {
+                self.y_range.start = y;
+            } else if self.y_range.end <= y {
+                self.y_range.end = y + 1;
+            } else {
+                unreachable!()
+            }
+        }
+    }
+}
+
+impl Add for Area {
+    type Output = Area;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        use std::cmp::{min, max};
+
+        let x_min = min(self.x_range.start, rhs.x_range.start);
+        let x_max = max(self.x_range.end, rhs.x_range.end);
+        let x_range = x_min..x_max;
+
+        let y_min = min(self.y_range.start, rhs.y_range.start);
+        let y_max = max(self.y_range.end, rhs.y_range.end);
+        let y_range = y_min..y_max;
+
+        Self { x_range, y_range }
+    }
 }
 
 impl Labeler {
@@ -60,19 +109,19 @@ impl Labeler {
             image_table.push(row);
         }
 
-        println!("x_range: {:?}", &ranges.0);
-        println!("y_range: {:?}", &ranges.1);
+        let territories = None;
 
-        Ok(Self { img, x_range: ranges.0..ranges.1, y_range: ranges.2..ranges.3, queue: VecDeque::new(), zero_point, color_tolerance, reference_value, image_table })
+        Ok(Self { img, x_range: ranges.0..ranges.1, y_range: ranges.2..ranges.3, queue: VecDeque::new(), zero_point, color_tolerance, reference_value, image_table, territories })
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Vec<ImageBuffer<Rgba<u8>, Vec<u8>>> {
         self.flood_fill();
         self.labelling();
+        self.get_panels()
     }
 
     /// フレームの読み取り
-    pub fn flood_fill(&mut self) {
+    fn flood_fill(&mut self) {
         let x = self.zero_point.0;
         let y = self.zero_point.1;
         if let Ok(_) = self.get_pixel(x, y) {
@@ -119,8 +168,10 @@ impl Labeler {
     }
 
     /// ラベリング
-    pub fn labelling(&mut self) {
+    fn labelling(&mut self) {
         let mut lookup_table = [None; 200];
+//        let mut area_table = [(0..0,0..0);200];
+        let mut territories: HashMap<Flag, Area> = HashMap::with_capacity(200);
 
         let mut last = Flag::Flame;
         for y in self.y_range.clone() {
@@ -159,12 +210,35 @@ impl Labeler {
                     };
 
                     self.image_table[y as usize][x as usize] = Some(label);
+                    // エリア情報
+                    if let Some(territory) = territories.get_mut(&label) {
+                        territory.calibrate(x, y);
+                    } else {
+                        territories.insert(label, Area {
+                            x_range: x..x + 1,
+                            y_range: y..y + 1,
+                        });
+                    }
                 }
             }
         }
 
         for i in (0..lookup_table.len()).rev() {
             if let Some(label) = lookup_table[i] {
+                // エリア情報をmarge
+                {
+                    let origin_key = Flag::Territory(label);
+                    let sub_key = Flag::Territory(i as u32);
+
+                    if let Some(area_origin) = territories.get(&origin_key) {
+                        if let Some(area_sub) = territories.get(&sub_key) {
+                            let area = area_origin.clone() + area_sub.clone();
+                            territories.insert(origin_key, area);
+                            territories.remove(&sub_key);
+                        }
+                    }
+                }
+
                 for y in self.y_range.clone() {
                     for x in self.x_range.clone() {
                         if self.image_table[y as usize][x as usize] == Some(Flag::Territory(i as u32)) {
@@ -174,10 +248,45 @@ impl Labeler {
                 }
             }
         }
+
+        self.territories = Some(territories);
+    }
+
+    /// コマの取得
+    fn get_panels(&mut self) -> Vec<ImageBuffer<Rgba<u8>, Vec<u8>>> {
+        let mut panels = Vec::new();
+
+        let territories = self.territories.as_ref().unwrap();
+
+        for (flag, area) in territories {
+            let width = area.x_range.end - area.x_range.start;
+            let height = area.y_range.end - area.y_range.start;
+
+            let mut image_buf: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(width, height);
+
+            // 移植
+            for y_from in area.y_range.clone() {
+                for x_from in area.x_range.clone() {
+                    if self.image_table[y_from as usize][x_from as usize] == Some(*flag) {
+                        let pixel = self.get_pixel(x_from, y_from).unwrap();
+
+                        let x_to = x_from - area.x_range.start;
+                        let y_to = y_from - area.y_range.start;
+
+                        image_buf.put_pixel(x_to, y_to, pixel);
+                    }
+                }
+            }
+
+            panels.push(image_buf);
+        }
+
+        panels
     }
 
     /// ラベリング
-    pub fn labelling_alt(&mut self) {
+    #[deprecated]
+    fn labelling_alt(&mut self) {
         let mut flag = Flag::Flame;
         for y in self.y_range.clone() {
             for x in self.x_range.clone() {
@@ -198,6 +307,7 @@ impl Labeler {
         }
     }
 
+    #[deprecated]
     fn panel_flood_fill(&mut self, queue: &mut VecDeque<(u32, u32)>, flag: Flag) {
         if let Some((x, y)) = queue.pop_front() {
             if self.x_range.contains(&x) && self.y_range.contains(&y) {
@@ -286,5 +396,51 @@ impl Labeler {
         }
 
         img.save("panels-irrigated.png").unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use image::Rgba;
+
+    use test::Bencher;
+    use crate::{crop::crop, irrigate::Labeler};
+
+    #[bench]
+    fn crop_bench(b: &mut Bencher) {
+        b.iter(|| {
+            let mut img = image::open("panels.png").unwrap();
+            let _ranges = crop(&mut img, 100, &Rgba([255, 255, 255, 255])).unwrap();
+        })
+    }
+
+    #[bench]
+    fn irrigate_bench(b: &mut Bencher) {
+        b.iter(|| {
+            let mut img = image::open("panels.png").unwrap();
+            let ranges = crop(&mut img, 100, &Rgba([255, 255, 255, 255])).unwrap();
+            Labeler::new(&img, ranges, 100, (200, 615)).unwrap().flood_fill();
+        });
+    }
+
+    #[bench]
+    fn labelling_bench(b: &mut Bencher) {
+        b.iter(|| {
+            let mut img = image::open("panels.png").unwrap();
+            let ranges = crop(&mut img, 100, &Rgba([255, 255, 255, 255])).unwrap();
+            let mut labeler = Labeler::new(&img, ranges, 100, (200, 615)).unwrap();
+            labeler.flood_fill();
+            labeler.labelling();
+        });
+    }
+
+    #[bench]
+    fn panelling_bench(b: &mut Bencher) {
+        b.iter(|| {
+            let mut img = image::open("panels.png").unwrap();
+            let ranges = crop(&mut img, 100, &Rgba([255, 255, 255, 255])).unwrap();
+            let mut labeler = Labeler::new(&img, ranges, 100, (200, 615)).unwrap();
+            labeler.run();
+        })
     }
 }
