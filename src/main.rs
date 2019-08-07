@@ -3,7 +3,7 @@
 extern crate test;
 
 use image::Rgba;
-use crate::{crop::crop,  irrigate::Labeler};
+use crate::{crop::crop, irrigate::Labeler};
 
 mod crop;
 mod irrigate;
@@ -46,7 +46,10 @@ fn run(image_path: &str, color_tolerance: u32, zero_point: (u32, u32)) -> PanelR
     let mut ranges = crop::crop(&mut img, color_tolerance, &Rgba([255, 255, 255, 255]))?;
 
     // ゼロ点からコマ領域外を探索
-    Labeler::new(&mut img, ranges, 100, (200, 615))?.run();
+    let mut labeler = Labeler::new(&mut img, ranges, 100, (200, 615))?;
+    labeler.flood_fill();
+    labeler.labelling();
+    labeler.output_map();
     // 孤立したコマのそれぞれについて処理
 
     Ok(())
@@ -75,6 +78,17 @@ mod tests {
             Labeler::new(&img, ranges, 100, (200, 615)).unwrap().flood_fill();
         });
     }
+
+//    #[bench]
+//    fn labelling_alt_bench(b: &mut Bencher) {
+//        b.iter(|| {
+//            let mut img = image::open("panels.png").unwrap();
+//            let ranges = crop(&mut img, 100, &Rgba([255, 255, 255, 255])).unwrap();
+//            let mut labeler = Labeler::new(&img, ranges, 100, (200, 615)).unwrap();
+//            labeler.flood_fill();
+//            labeler.labelling_alt();
+//        });
+//    }
 
     #[bench]
     fn labelling_bench(b: &mut Bencher) {

@@ -163,13 +163,67 @@ impl Labeler {
             }
         }
 
-        for i in (0..200).rev() {
+        for i in (0..lookup_table.len()).rev() {
             if let Some(label) = lookup_table[i] {
                 for y in self.y_range.clone() {
                     for x in self.x_range.clone() {
                         if self.image_table[y as usize][x as usize] == Some(Flag::Territory(i as u32)) {
                             self.image_table[y as usize][x as usize] = Some(Flag::Territory(label));
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /// ラベリング
+    pub fn labelling_alt(&mut self) {
+        let mut flag = Flag::Flame;
+        for y in self.y_range.clone() {
+            for x in self.x_range.clone() {
+                if None == self.get_label(x, y) {
+                    flag = flag.next();
+
+                    let mut queue = VecDeque::new();
+                    queue.push_back((x, y));
+
+                    loop {
+                        self.panel_flood_fill(&mut queue, flag);
+                        if queue.is_empty() {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn panel_flood_fill(&mut self, queue: &mut VecDeque<(u32, u32)>, flag: Flag) {
+        if let Some((x, y)) = queue.pop_front() {
+            if self.x_range.contains(&x) && self.y_range.contains(&y) {
+                if Some(Flag::Flame) != self.get_label(x, y) && self.image_table[y as usize][x as usize].is_none() {
+                    self.image_table[y as usize][x as usize] = Some(flag);
+
+                    // 周囲4pixelを判定待ちの列に加える
+                    let item = (x, y + 1);
+                    if !queue.contains(&item) {
+                        queue.push_back(item);
+                    }
+                    if x > 0 {
+                        let item = (x - 1, y);
+                        if !queue.contains(&item) {
+                            queue.push_back(item);
+                        }
+                    }
+                    if y > 0 {
+                        let item = (x, y - 1);
+                        if !queue.contains(&item) {
+                            queue.push_back(item);
+                        }
+                    }
+                    let item = (x + 1, y);
+                    if !queue.contains(&item) {
+                        queue.push_back(item);
                     }
                 }
             }
